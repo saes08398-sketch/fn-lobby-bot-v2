@@ -37,20 +37,22 @@ class EpicXMPPClient {
     this.xmpp.on('error', (err) => {
       const code = err?.code || '';
       log.error(`XMPP error: code=${code}, msg=${err?.message}`);
-      this.state.pushLog('error', `XMPP error: ${code}`);
 
-      // Stop reconnection on permanent failures
+      // Kill the client on permanent failures to stop the reconnection loop
       if (PERMANENT_ERRORS.has(code)) {
         this._permanentFailure = true;
-        this.state.update({ xmppStatus: 'blocked' });
-        this.state.pushLog('warn', 'XMPP server blocked - real-time party features unavailable.');
+        this.state.update({ xmppStatus: 'blocked', online: false });
+        this.state.pushLog('warn', 'XMPP server blocked — real-time party features unavailable.');
+
+        // Stop the xmpp client entirely to prevent reconnect spam
+        const x = this.xmpp;
+        this.xmpp = null;
+        x.stop().catch(() => {});
       }
     });
 
     this.xmpp.on('offline', () => {
       this.state.update({ online: false });
-      this.state.pushLog('warn', 'XMPP disconnected.');
-      // Re-enable auto-reconnect for non-permanent errors
     });
 
     this.xmpp.on('stanza', async (stanza) => {
@@ -62,8 +64,8 @@ class EpicXMPPClient {
     });
 
     this.xmpp.on('online', async (address) => {
+      if (this._permanentFailure) return; // already flagged as blocked
       log.info('XMPP online:', address.toString());
-      this._permanentFailure = false;
       this.state.update({ online: true, xmppStatus: 'connected' });
       this.state.pushLog('info', 'Bot online in Fortnite.');
       await this.sendPresence();
@@ -80,15 +82,14 @@ class EpicXMPPClient {
       return true;
     } catch (err) {
       const code = err?.code || '';
-      log.error(`XMPP start failed: code=${code}, msg=${err?.message}`);
-      
+      // Kill client on permanent errors to prevent reconnect spam
       if (PERMANENT_ERRORS.has(code)) {
         this._permanentFailure = true;
-        this.state.update({ xmppStatus: 'blocked' });
-        this.state.pushLog('warn', 'XMPP server blocked — real-time party features unavailable. Bot continues without XMPP.');
+        this.state.update({ xmppStatus: 'blocked', online: false });
+        const x = this.xmpp;
+        this.xmpp = null;
+        x.stop().catch(() => {});
       }
-      
-      // never throw — let the caller decide how to handle
       return false;
     }
   }
