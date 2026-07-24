@@ -41,21 +41,8 @@ async function main() {
       log.error('Auto-login failed:', e.message);
       state.pushLog('error', `Auto-login failed: ${e.message}`);
     }
-  } else if (process.env.EPIC_EMAIL && process.env.EPIC_PASSWORD) {
-    try {
-      const client = new EpicClient(state);
-      webServer.currentClient = client;
-      const { loginWithEmailPassword } = require('./auth/passwordLogin');
-      const token = await loginWithEmailPassword(process.env.EPIC_EMAIL, process.env.EPIC_PASSWORD);
-      client.tokenManager.set(token);
-      await client.start();
-      log.info('Auto-logged in with email/password.');
-    } catch (e) {
-      log.error('Auto-login failed:', e.message);
-      state.pushLog('error', `Auto-login failed: ${e.message}`);
-    }
   } else {
-    log.info('No auto-login credentials found. Use the dashboard to log in.');
+    log.info('No refresh token found. Use the dashboard to log in with a device code.');
   }
 
   process.on('SIGINT', async () => {
