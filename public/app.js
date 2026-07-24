@@ -25,13 +25,20 @@ function render() {
 
   if (state.authenticated) {
     $('login-box').classList.add('hidden');
-    $('btn-login').classList.add('hidden');
     $('account-info').classList.remove('hidden');
     $('account-name').textContent = state.displayName || state.accountId;
     $('account-id').textContent = state.accountId || 'N/A';
+    if (state.hasRefreshToken) {
+      $('refresh-token-section').classList.remove('hidden');
+      api('/api/refresh-token').then(d => {
+        if (d.refreshToken) $('refresh-token-value').value = d.refreshToken;
+      }).catch(() => {});
+    } else {
+      $('refresh-token-section').classList.add('hidden');
+    }
   } else {
     $('account-info').classList.add('hidden');
-    $('btn-login').classList.remove('hidden');
+    $('login-box').classList.remove('hidden');
   }
 
   $('party-id').textContent = state.partyId || 'None';
@@ -39,13 +46,6 @@ function render() {
   $('auto-accept').checked = state.autoAccept;
   $('current-skin').textContent = state.currentSkin || 'None';
   $('current-emote').textContent = state.currentEmote || 'None';
-
-  if (state.deviceCode && !state.authenticated) {
-    $('login-box').classList.remove('hidden');
-    $('device-code').textContent = state.deviceCode;
-    $('login-link').href = state.loginLink || state.deviceCodeUrl;
-    $('login-link').textContent = state.deviceCodeUrl || 'epicgames.com/activate';
-  }
 
   const logsEl = $('logs');
   logsEl.innerHTML = '';
@@ -73,21 +73,40 @@ async function api(url, opts = {}) {
   return data;
 }
 
-$('btn-login').onclick = async () => {
-  $('btn-login').disabled = true;
+$('btn-get-code').onclick = async () => {
   try {
-    const data = await api('/api/login');
-    if (data.user_code) {
-      $('login-box').classList.remove('hidden');
-      $('device-code').textContent = data.user_code;
-      $('login-link').href = data.login_link || data.verification_uri;
-      $('login-link').textContent = data.verification_uri;
-    }
+    const data = await api('/api/auth-url');
+    window.open(data.url, '_blank');
   } catch (e) {
     console.error(e);
-  } finally {
-    $('btn-login').disabled = false;
   }
+};
+
+$('btn-submit-code').onclick = async () => {
+  const code = $('auth-code-input').value.trim();
+  if (!code) return alert('Paste the code or URL from Epic first');
+  $('btn-submit-code').disabled = true;
+  $('btn-submit-code').textContent = 'Connecting...';
+  try {
+    const data = await api('/api/auth/exchange', {
+      method: 'POST',
+      body: JSON.stringify({ code })
+    });
+    if (data.ok) {
+      $('auth-code-input').value = '';
+    }
+  } catch (e) {
+    alert('Login failed: ' + e.message);
+  } finally {
+    $('btn-submit-code').disabled = false;
+    $('btn-submit-code').textContent = 'Connect';
+  }
+};
+
+$('btn-copy-token').onclick = () => {
+  const input = $('refresh-token-value');
+  input.select();
+  navigator.clipboard.writeText(input.value).catch(() => {});
 };
 
 $('btn-disconnect').onclick = async () => {

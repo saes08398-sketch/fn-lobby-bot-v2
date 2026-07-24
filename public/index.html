@@ -16,15 +16,27 @@
     <section class="card">
       <h2>Authentication</h2>
       <p id="login-hint">Log in with the Epic account you want the bot to use.</p>
-      <p>Generate a device code, then visit the link and enter the code to authorize the bot.</p>
-      <button id="btn-login" class="btn">Generate Login Code</button>
-      <div id="login-box" class="hidden">
-        <p>Go to <a id="login-link" href="#" target="_blank">epicgames.com/activate</a> and enter:</p>
-        <div class="code" id="device-code">----</div>
+      <div id="login-box">
+        <p><strong>Step 1:</strong> Click the button below to get a login code from Epic.</p>
+        <button id="btn-get-code" class="btn">Get Epic Login Code</button>
+        <p><strong>Step 2:</strong> After logging in, you'll be redirected to a URL with <code>?code=...</code>. Copy the <strong>entire URL</strong> and paste it here.</p>
+        <div class="row">
+          <input type="text" id="auth-code-input" placeholder="Paste the full redirect URL or just the code">
+          <button id="btn-submit-code" class="btn primary">Connect</button>
+        </div>
+        <p class="hint">The code expires after a few minutes. If it expires, just click "Get Epic Login Code" again.</p>
       </div>
       <div id="account-info" class="hidden">
         <p>Logged in as <strong id="account-name"></strong></p>
         <p>Account ID: <code id="account-id"></code></p>
+        <div id="refresh-token-section" class="hidden">
+          <p><strong>Refresh Token (save for auto-reconnect):</strong></p>
+          <div class="row">
+            <input type="text" id="refresh-token-value" readonly>
+            <button id="btn-copy-token" class="btn">Copy</button>
+          </div>
+          <p class="hint">Set this as <code>EPIC_REFRESH_TOKEN</code> in your Railway environment variables for permanent auto-login.</p>
+        </div>
         <button id="btn-disconnect" class="btn danger">Disconnect</button>
       </div>
     </section>

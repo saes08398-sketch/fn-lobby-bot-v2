@@ -2,10 +2,9 @@
  * Epic / Fortnite API constants
  */
 
-// Default: fortniteNewSwitchGameClient — supports device_code grant type.
-// Fallback: fortnitePCGameClient (device_code NOT supported — use only if you manually set EPIC_CLIENT_ID/SECRET).
-const EPIC_CLIENT_ID = process.env.EPIC_CLIENT_ID || '98f7e42c2e3a4f86a74eb43fbb41ed39';
-const EPIC_CLIENT_SECRET = process.env.EPIC_CLIENT_SECRET || '0a2449a2-001a-451e-afec-3e812901c4d7';
+// Using fortnitePCGameClient — supports exchange_code, authorization_code, refresh_token grants.
+const EPIC_CLIENT_ID = process.env.EPIC_CLIENT_ID || 'ec684b8c687f479fadea3cb2ad83f5c6';
+const EPIC_CLIENT_SECRET = process.env.EPIC_CLIENT_SECRET || 'e1f31c211f28413186262d37a13fc84d';
 
 function validateCredentials() {
   if (!EPIC_CLIENT_ID || !EPIC_CLIENT_SECRET) {

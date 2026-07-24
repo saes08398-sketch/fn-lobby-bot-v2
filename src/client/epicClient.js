@@ -18,27 +18,13 @@ class EpicClient {
     this.intervals = [];
   }
 
-  async authenticateWithDeviceCode(deviceCode) {
-    const { pollDeviceCode } = require('../auth/deviceCode');
-    log.info('Waiting for device-code login...');
-    this.state.pushLog('info', 'Waiting for Epic login...');
-    const token = await pollDeviceCode(deviceCode);
-    this.tokenManager.set(token);
-    this.state.pushLog('info', `Authenticated as ${token.displayName || token.account_id}`);
-    if (token.refresh_token) {
-      log.info('Save this EPIC_REFRESH_TOKEN in Railway to skip device-code login on restart:');
-      log.info(token.refresh_token);
-    }
-    return token;
-  }
-
   async authenticateWithRefresh(refreshToken) {
-    const { requestToken } = require('../auth/deviceCode');
+    const { requestToken } = require('../auth/exchangeCode');
     const token = await requestToken('refresh_token', refreshToken);
     this.tokenManager.set(token);
     this.state.pushLog('info', `Authenticated via refresh as ${token.displayName || token.account_id}`);
     if (token.refresh_token) {
-      log.info('Refresh token updated. Save EPIC_REFRESH_TOKEN in Railway to persist login.');
+      log.info('Refresh token updated.');
     }
     return token;
   }

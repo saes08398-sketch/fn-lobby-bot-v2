@@ -157,3 +157,9 @@ hr {
   border-top: 1px solid var(--border);
   margin: 18px 0;
 }
+
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}

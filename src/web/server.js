@@ -25,34 +25,46 @@ class WebServer {
       res.json(this.sanitizedStatus());
     });
 
-    this.app.get('/api/login', async (req, res) => {
+    // Get Epic authorization URL (user visits this in browser to get a code)
+    this.app.get('/api/auth-url', (req, res) => {
+      const { EPIC_CLIENT_ID } = require('../utils/constants');
+      const url = `https://www.epicgames.com/id/api/redirect?clientId=${EPIC_CLIENT_ID}&responseType=code`;
+      res.json({ url });
+    });
+
+    // Exchange an authorization code for OAuth tokens
+    this.app.post('/api/auth/exchange', async (req, res) => {
       try {
-        const { requestDeviceCode } = require('../auth/deviceCode');
-        const deviceCode = await requestDeviceCode();
-        this.state.update({
-          deviceCode: deviceCode.user_code,
-          deviceCodeUrl: deviceCode.verification_uri,
-          loginLink: `${deviceCode.verification_uri_complete || deviceCode.verification_uri}?user_code=${deviceCode.user_code}`
-        });
-        this.state.pushLog('info', `Login code: ${deviceCode.user_code}`);
+        const { code } = req.body;
+        if (!code) return res.status(400).json({ error: 'Missing code' });
 
-        // Start polling in the background.
-        this.startAuthFlow(deviceCode);
+        const { exchangeCode } = require('../auth/exchangeCode');
+        const token = await exchangeCode(code);
 
-        res.json({
-          user_code: deviceCode.user_code,
-          verification_uri: deviceCode.verification_uri,
-          login_link: this.state.get().loginLink,
-          expires_in: deviceCode.expires_in
-        });
+        // Save refresh token in state
+        if (token.refresh_token) {
+          this.state.update({ refreshToken: token.refresh_token });
+          this.state.pushLog('info', 'Refresh token obtained. Copy it from the dashboard and set EPIC_REFRESH_TOKEN in Railway env vars for permanent auto-login.');
+        }
+
+        // Start the bot
+        const client = this.clientFactory();
+        this.currentClient = client;
+        client.tokenManager.set(token);
+        await client.start();
+
+        res.json({ ok: true, displayName: token.displayName || 'Unknown', accountId: token.account_id });
       } catch (e) {
-        log.error('Device code request failed:', e.message);
+        log.error('Code exchange failed:', e.message);
         res.status(500).json({ error: e.message });
       }
     });
 
-    // Email/password login removed — Epic requires captcha, making it unusable.
-    // Use device-code flow instead (GET /api/login).
+    // Get the current refresh token (for user to copy into env vars)
+    this.app.get('/api/refresh-token', (req, res) => {
+      const s = this.state.get();
+      res.json({ refreshToken: s.refreshToken || null });
+    });
 
     this.app.post('/api/equip', async (req, res) => {
       if (!this.currentClient || !this.currentClient.cosmetics) {
@@ -118,18 +130,6 @@ class WebServer {
     });
   }
 
-  async startAuthFlow(deviceCode) {
-    try {
-      const client = this.clientFactory();
-      this.currentClient = client;
-      await client.authenticateWithDeviceCode(deviceCode);
-      await client.start();
-    } catch (e) {
-      log.error('Auth flow failed:', e.message);
-      this.state.pushLog('error', `Auth failed: ${e.message}`);
-    }
-  }
-
   sanitizedStatus(snap) {
     const s = snap || this.state.get();
     return {
@@ -141,10 +141,8 @@ class WebServer {
       partyMembers: s.partyMembers,
       currentSkin: s.currentSkin,
       currentEmote: s.currentEmote,
-      deviceCode: s.deviceCode,
-      deviceCodeUrl: s.deviceCodeUrl,
-      loginLink: s.loginLink,
       autoAccept: this.currentClient?.party?.autoAccept ?? ((process.env.AUTO_ACCEPT_INVITES || 'true').toLowerCase() === 'true'),
+      hasRefreshToken: !!s.refreshToken,
       logs: s.logs.slice(-50)
     };
   }

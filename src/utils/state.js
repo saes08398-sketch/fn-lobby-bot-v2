@@ -14,10 +14,8 @@ class BotState {
       partyMembers: [],
       currentSkin: null,
       currentEmote: null,
-      deviceCode: null,
-      deviceCodeUrl: null,
+      refreshToken: null,
       logs: [],
-      loginLink: null,
       inviteQueue: [],
       friends: []
     };
