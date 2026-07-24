@@ -31,8 +31,8 @@ class EpicXMPPClient {
     });
 
     this.xmpp.on('error', (err) => {
-      log.error('XMPP error:', JSON.stringify(err), 'msg:', err?.message);
-      this.state.pushLog('error', `XMPP error: ${err?.message || JSON.stringify(err)}`);
+      log.error('XMPP error:', JSON.stringify(err), 'msg:', err?.message, 'code:', err?.code, 'errno:', err?.errno, 'syscall:', err?.syscall, 'name:', err?.name);
+      this.state.pushLog('error', `XMPP error: code=${err?.code}, msg=${err?.message}`);
     });
 
     this.xmpp.on('offline', () => {
@@ -64,8 +64,8 @@ class EpicXMPPClient {
       await this.xmpp.start();
       log.info('XMPP started successfully');
     } catch (err) {
-      log.error('XMPP start failed:', JSON.stringify(err), 'msg:', err?.message);
-      this.state.pushLog('error', `XMPP start failed: ${err?.message || JSON.stringify(err)}`);
+      log.error('XMPP start failed:', JSON.stringify(err), 'msg:', err?.message, 'code:', err?.code, 'errno:', err?.errno, 'syscall:', err?.syscall);
+      this.state.pushLog('error', `XMPP start failed: code=${err?.code}, msg=${err?.message}`);
       throw err;
     }
   }
