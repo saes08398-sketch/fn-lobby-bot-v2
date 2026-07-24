@@ -42,7 +42,7 @@ async function main() {
       state.pushLog('error', `Auto-login failed: ${e.message}`);
     }
   } else {
-    log.info('No refresh token found. Use the dashboard to log in with a device code.');
+    log.info('No refresh token found. Use the dashboard to log in with Epic.');
   }
 
   process.on('SIGINT', async () => {
