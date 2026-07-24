@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FN Lobby Bot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>FN Lobby Bot</h1>
+      <span id="status-badge" class="badge offline">Offline</span>
+    </header>
+
+    <section class="card">
+      <h2>Authentication</h2>
+      <p id="login-hint">Log in with the Epic account credentials you want the bot to use.</p>
+      <div class="auth-section">
+        <label>Email</label>
+        <input type="email" id="email" placeholder=" Epic email">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Epic password">
+        <button id="btn-login-password" class="btn primary">Login with Email/Password</button>
+      </div>
+      <hr>
+      <p>Or generate a device code instead.</p>
+      <button id="btn-login" class="btn">Generate Login Code</button>
+      <div id="login-box" class="hidden">
+        <p>Go to <a id="login-link" href="#" target="_blank">epicgames.com/activate</a> and enter:</p>
+        <div class="code" id="device-code">----</div>
+      </div>
+      <div id="account-info" class="hidden">
+        <p>Logged in as <strong id="account-name"></strong></p>
+        <p>Account ID: <code id="account-id"></code></p>
+        <button id="btn-disconnect" class="btn danger">Disconnect</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Party</h2>
+      <p>Party ID: <code id="party-id">None</code></p>
+      <p>Members: <span id="party-members">0</span></p>
+      <label class="switch">
+        <input type="checkbox" id="auto-accept" checked>
+        <span class="slider"></span>
+        Auto-accept invites
+      </label>
+      <div class="row">
+        <input type="text" id="party-msg" placeholder="Party message">
+        <button id="btn-send-msg" class="btn">Send</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Cosmetics</h2>
+      <div class="grid">
+        <div>
+          <label>Skin ID</label>
+          <input type="text" id="skin-id" placeholder="CID_... or full template">
+          <button id="btn-equip-skin" class="btn">Equip Skin</button>
+        </div>
+        <div>
+          <label>Backpack ID</label>
+          <input type="text" id="backpack-id" placeholder="BID_... or full template">
+          <button id="btn-equip-backpack" class="btn">Equip Backpack</button>
+        </div>
+        <div>
+          <label>Pickaxe ID</label>
+          <input type="text" id="pickaxe-id" placeholder="PID_... or full template">
+          <button id="btn-equip-pickaxe" class="btn">Equip Pickaxe</button>
+        </div>
+        <div>
+          <label>Emote ID</label>
+          <input type="text" id="emote-id" placeholder="EID_... or full template">
+          <select id="emote-section">
+            <option value="Emote1">Emote 1</option>
+            <option value="Emote2">Emote 2</option>
+            <option value="Emote3">Emote 3</option>
+            <option value="Emote4">Emote 4</option>
+            <option value="Emote5">Emote 5</option>
+            <option value="Emote6">Emote 6</option>
+          </select>
+          <button id="btn-play-emote" class="btn">Play Emote</button>
+        </div>
+      </div>
+      <div class="current">
+        <p>Current Skin: <code id="current-skin">None</code></p>
+        <p>Current Emote: <code id="current-emote">None</code></p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Live Logs</h2>
+      <div id="logs" class="logs"></div>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
