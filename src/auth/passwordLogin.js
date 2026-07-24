@@ -13,33 +13,43 @@ function getBasicAuth() {
   return 'Basic ' + Buffer.from(`${EPIC_CLIENT_ID}:${EPIC_CLIENT_SECRET}`).toString('base64');
 }
 
-async function getCsrfCookie() {
-  const res = await axios.get(CSRF_URL, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    withCredentials: true
-  });
-
-  // Parse the XSRF-TOKEN cookie manually.
-  const cookies = res.headers['set-cookie'] || [];
-  for (const cookie of cookies) {
-    if (cookie.includes('XSRF-TOKEN=')) {
-      const match = cookie.match(/XSRF-TOKEN=([^;]+)/);
-      if (match) return decodeURIComponent(match[1]);
-    }
-  }
-  throw new Error('Failed to obtain XSRF token');
-}
-
 async function loginWithEmailPassword(email, password) {
-  const xsrf = await getCsrfCookie();
-  log.info('XSRF token obtained, attempting login...');
-
-  const cookieJar = `XSRF-TOKEN=${encodeURIComponent(xsrf)}`;
-
   try {
+    // Step 1: Get CSRF token
+    log.info('Fetching CSRF token...');
+    const csrfRes = await axios.get(CSRF_URL, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      maxRedirects: 0,
+      validateStatus: () => true
+    });
+
+    // Extract all cookies from response
+    const cookies = csrfRes.headers['set-cookie'] || [];
+    let xsrfToken = null;
+    const cookieJar = [];
+    
+    for (const cookie of cookies) {
+      const match = cookie.match(/XSRF-TOKEN=([^;]+)/);
+      if (match) {
+        xsrfToken = decodeURIComponent(match[1]);
+      }
+      // Store all cookies
+      const cookieMatch = cookie.match(/^([^=]+)=([^;]+)/);
+      if (cookieMatch) {
+        cookieJar.push(`${cookieMatch[1]}=${cookieMatch[2]}`);
+      }
+    }
+
+    if (!xsrfToken) {
+      throw new Error('Failed to obtain XSRF token from cookies: ' + cookies.join(', '));
+    }
+
+    log.info('XSRF token obtained, attempting login...');
+
+    // Step 2: Login with email/password
     const loginRes = await axios.post(LOGIN_URL, {
       email,
       password,
@@ -48,26 +58,44 @@ async function loginWithEmailPassword(email, password) {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'X-XSRF-TOKEN': xsrf,
-        'Cookie': cookieJar
-      }
+        'X-XSRF-TOKEN': xsrfToken,
+        'Cookie': cookieJar.join('; '),
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      maxRedirects: 0,
+      validateStatus: () => true
     });
 
-    log.info('Login response received, fetching exchange code...');
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed with status ${loginRes.status}: ${JSON.stringify(loginRes.data)}`);
+    }
 
-    // Login sets cookies; use them to get an exchange code.
+    log.info('Login successful, fetching exchange code...');
+
+    // Step 3: Get exchange code
     const exchangeRes = await axios.get(EXCHANGE_URL, {
       headers: {
         'Accept': 'application/json',
-        'Cookie': loginRes.headers['set-cookie']?.join('; ') || cookieJar
-      }
+        'X-XSRF-TOKEN': xsrfToken,
+        'Cookie': cookieJar.join('; '),
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      maxRedirects: 0,
+      validateStatus: () => true
     });
 
+    if (exchangeRes.status !== 200) {
+      throw new Error(`Exchange code request failed with status ${exchangeRes.status}: ${JSON.stringify(exchangeRes.data)}`);
+    }
+
     const exchangeCode = exchangeRes.data?.code;
-    if (!exchangeCode) throw new Error('No exchange code returned');
+    if (!exchangeCode) {
+      throw new Error('No exchange code returned: ' + JSON.stringify(exchangeRes.data));
+    }
 
     log.info('Exchange code received, fetching OAuth token...');
 
+    // Step 4: Exchange code for OAuth token
     const tokenRes = await axios.post(EPIC_TOKEN, qs.stringify({
       grant_type: 'exchange_code',
       exchange_code: exchangeCode
@@ -78,13 +106,14 @@ async function loginWithEmailPassword(email, password) {
       }
     });
 
+    log.info('OAuth token received successfully');
     return tokenRes.data;
   } catch (err) {
     const data = err?.response?.data;
-    const errorCode = data?.errorCode || data?.errorCode || data?.message;
-    const message = data?.message || err.message;
-    log.error('Password login failed:', errorCode, message);
-    throw new Error(`Password login failed: ${errorCode || message}`);
+    const errorCode = data?.errorCode || data?.message || err.message;
+    log.error('Password login failed:', errorCode);
+    if (data) log.error('Error details:', JSON.stringify(data));
+    throw new Error(`Password login failed: ${errorCode}`);
   }
 }
 
