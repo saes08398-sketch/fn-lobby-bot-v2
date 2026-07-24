@@ -42,23 +42,27 @@ class EpicClient {
     this.cosmetics = new CosmeticsManager(this.tokenManager, this.state);
     await this.cosmetics.init();
 
-    // Connect XMPP.
-    this.xmpp = new EpicXMPPClient(this.tokenManager, this.state);
-    await this.xmpp.connect();
-    this.cosmetics.bindXMPP(this.xmpp);
-
-    // Initialize party manager.
-    this.party = new PartyManager(this.xmpp, this.api, this.state);
+    // Connect XMPP (non-fatal if it fails — some hosts block Epic's XMPP server).
+    try {
+      this.xmpp = new EpicXMPPClient(this.tokenManager, this.state);
+      await this.xmpp.connect();
+      this.cosmetics.bindXMPP(this.xmpp);
+      this.party = new PartyManager(this.xmpp, this.api, this.state);
+    } catch (e) {
+      log.warn('XMPP connection failed — bot will run without real-time features:', e.message);
+      this.state.pushLog('warn', 'XMPP unavailable. Party invite auto-accept and presence will not work.');
+      this.state.update({ xmppStatus: 'blocked' });
+    }
 
     // Equip defaults.
     await this.applyDefaults();
 
-    // Re-send in-game presence periodically so the friend shows in-game, not launcher.
-    this.intervals.push(setInterval(() => {
-      if (this.xmpp) {
+    // Re-send in-game presence periodically (only if XMPP connected).
+    if (this.xmpp) {
+      this.intervals.push(setInterval(() => {
         this.xmpp.sendPresence().catch(() => {});
-      }
-    }, 60000));
+      }, 60000));
+    }
 
     // Refresh access token before it expires.
     this.intervals.push(setInterval(async () => {

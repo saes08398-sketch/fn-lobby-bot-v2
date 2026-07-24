@@ -15,6 +15,7 @@ class BotState {
       currentSkin: null,
       currentEmote: null,
       refreshToken: null,
+      xmppStatus: 'disconnected',
       logs: [],
       inviteQueue: [],
       friends: []

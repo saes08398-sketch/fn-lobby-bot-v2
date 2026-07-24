@@ -50,6 +50,7 @@ h2 { margin-top: 0; font-size: 1.2rem; color: var(--accent); }
 }
 .badge.offline { background: #3a2a2a; color: var(--danger); }
 .badge.online { background: #1b3a2a; color: var(--success); }
+.badge.warn { background: #3a3520; color: #ffcc00; }
 
 .btn {
   padding: 10px 16px;

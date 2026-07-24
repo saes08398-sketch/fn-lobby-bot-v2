@@ -143,6 +143,7 @@ class WebServer {
       currentEmote: s.currentEmote,
       autoAccept: this.currentClient?.party?.autoAccept ?? ((process.env.AUTO_ACCEPT_INVITES || 'true').toLowerCase() === 'true'),
       hasRefreshToken: !!s.refreshToken,
+      xmppStatus: s.xmppStatus || 'disconnected',
       logs: s.logs.slice(-50)
     };
   }

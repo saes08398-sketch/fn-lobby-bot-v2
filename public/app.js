@@ -23,6 +23,19 @@ function render() {
     badge.className = 'badge offline';
   }
 
+  const xmppBadge = $('xmpp-badge');
+  if (state.xmppStatus === 'blocked') {
+    xmppBadge.textContent = 'No XMPP';
+    xmppBadge.className = 'badge warn';
+    xmppBadge.style.display = 'inline-block';
+  } else if (state.xmppStatus === 'connected') {
+    xmppBadge.textContent = 'XMPP';
+    xmppBadge.className = 'badge online';
+    xmppBadge.style.display = 'inline-block';
+  } else {
+    xmppBadge.style.display = 'none';
+  }
+
   if (state.authenticated) {
     $('login-box').classList.add('hidden');
     $('account-info').classList.remove('hidden');

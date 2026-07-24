@@ -5,6 +5,9 @@ const { createLogger } = require('../utils/logger');
 
 const log = createLogger('XMPP');
 
+// Errors that indicate a permanent connection failure (no point retrying)
+const PERMANENT_ERRORS = new Set(['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN']);
+
 class EpicXMPPClient {
   constructor(tokenManager, state) {
     this.tokenManager = tokenManager;
@@ -12,6 +15,7 @@ class EpicXMPPClient {
     this.xmpp = null;
     this.handlers = new Map();
     this.partyId = null;
+    this._permanentFailure = false;
   }
 
   async connect() {
@@ -27,17 +31,26 @@ class EpicXMPPClient {
       username: accountId,
       password: token,
       resource: `V2:Fortnite:PC::${FORTNITE_NET_CL}`,
-      timeout: 30000
+      timeout: 15000
     });
 
     this.xmpp.on('error', (err) => {
-      log.error('XMPP error:', JSON.stringify(err), 'msg:', err?.message, 'code:', err?.code, 'errno:', err?.errno, 'syscall:', err?.syscall, 'name:', err?.name);
-      this.state.pushLog('error', `XMPP error: code=${err?.code}, msg=${err?.message}`);
+      const code = err?.code || '';
+      log.error(`XMPP error: code=${code}, msg=${err?.message}`);
+      this.state.pushLog('error', `XMPP error: ${code}`);
+
+      // Stop reconnection on permanent failures
+      if (PERMANENT_ERRORS.has(code)) {
+        this._permanentFailure = true;
+        this.state.update({ xmppStatus: 'blocked' });
+        this.state.pushLog('warn', 'XMPP server blocked - real-time party features unavailable.');
+      }
     });
 
     this.xmpp.on('offline', () => {
       this.state.update({ online: false });
       this.state.pushLog('warn', 'XMPP disconnected.');
+      // Re-enable auto-reconnect for non-permanent errors
     });
 
     this.xmpp.on('stanza', async (stanza) => {
@@ -50,22 +63,31 @@ class EpicXMPPClient {
 
     this.xmpp.on('online', async (address) => {
       log.info('XMPP online:', address.toString());
-      this.state.update({ online: true });
+      this._permanentFailure = false;
+      this.state.update({ online: true, xmppStatus: 'connected' });
       this.state.pushLog('info', 'Bot online in Fortnite.');
       await this.sendPresence();
       await this.sendCapabilities();
     });
 
     this.xmpp.on('status', (status) => {
-      log.info('XMPP status:', status);
+      log.debug('XMPP status:', status);
     });
 
     try {
       await this.xmpp.start();
       log.info('XMPP started successfully');
     } catch (err) {
-      log.error('XMPP start failed:', JSON.stringify(err), 'msg:', err?.message, 'code:', err?.code, 'errno:', err?.errno, 'syscall:', err?.syscall);
-      this.state.pushLog('error', `XMPP start failed: code=${err?.code}, msg=${err?.message}`);
+      const code = err?.code || '';
+      log.error(`XMPP start failed: code=${code}, msg=${err?.message}`);
+      this.state.pushLog('error', `XMPP start failed: ${code}`);
+      
+      if (PERMANENT_ERRORS.has(code)) {
+        this._permanentFailure = true;
+        this.state.update({ xmppStatus: 'blocked' });
+        this.state.pushLog('warn', 'XMPP server blocked. Bot will run without real-time party features. Deploy on a VPS (DigitalOcean, AWS) to fix.');
+      }
+      
       throw err;
     }
   }
