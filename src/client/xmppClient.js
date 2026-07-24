@@ -77,18 +77,19 @@ class EpicXMPPClient {
     try {
       await this.xmpp.start();
       log.info('XMPP started successfully');
+      return true;
     } catch (err) {
       const code = err?.code || '';
       log.error(`XMPP start failed: code=${code}, msg=${err?.message}`);
-      this.state.pushLog('error', `XMPP start failed: ${code}`);
       
       if (PERMANENT_ERRORS.has(code)) {
         this._permanentFailure = true;
         this.state.update({ xmppStatus: 'blocked' });
-        this.state.pushLog('warn', 'XMPP server blocked. Bot will run without real-time party features. Deploy on a VPS (DigitalOcean, AWS) to fix.');
+        this.state.pushLog('warn', 'XMPP server blocked — real-time party features unavailable. Bot continues without XMPP.');
       }
       
-      throw err;
+      // never throw — let the caller decide how to handle
+      return false;
     }
   }
 
