@@ -19,8 +19,11 @@ async function loginWithEmailPassword(email, password) {
     log.info('Fetching CSRF token...');
     const csrfRes = await axios.get(CSRF_URL, {
       headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.epicgames.com/id/login',
+        'Origin': 'https://www.epicgames.com'
       },
       maxRedirects: 0,
       validateStatus: () => true
@@ -60,7 +63,9 @@ async function loginWithEmailPassword(email, password) {
         'Content-Type': 'application/json',
         'X-XSRF-TOKEN': xsrfToken,
         'Cookie': cookieJar.join('; '),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.epicgames.com/id/login',
+        'Origin': 'https://www.epicgames.com'
       },
       maxRedirects: 0,
       validateStatus: () => true
@@ -78,7 +83,9 @@ async function loginWithEmailPassword(email, password) {
         'Accept': 'application/json',
         'X-XSRF-TOKEN': xsrfToken,
         'Cookie': cookieJar.join('; '),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.epicgames.com/id/login',
+        'Origin': 'https://www.epicgames.com'
       },
       maxRedirects: 0,
       validateStatus: () => true
