@@ -1,18 +1,9 @@
-const { client, xml } = require('@xmpp/client');
-const {
-  XMPP_HOST,
-  XMPP_PORT,
-  PARTY_PROD_DOMAIN,
-  getPlatformPresence,
-  FORTNITE_NET_CL
-} = require('../utils/constants');
+const { client } = require('@xmpp/client');
+const { xml } = require('@xmpp/xml');
+const { XMPP_HOST, XMPP_PORT, PARTY_PROD_DOMAIN, getPlatformPresence, FORTNITE_NET_CL } = require('../utils/constants');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('XMPP');
-
-function presenceJson(accountId) {
-  return getPlatformPresence(accountId);
-}
 
 class EpicXMPPClient {
   constructor(tokenManager, state) {
@@ -28,18 +19,20 @@ class EpicXMPPClient {
     const token = this.tokenManager.accessToken;
     if (!accountId || !token) throw new Error('Missing token for XMPP');
 
+    log.info('Connecting to XMPP...');
+
     this.xmpp = client({
       service: `xmpp://${XMPP_HOST}:${XMPP_PORT}`,
       domain: 'epicgames.com',
       username: accountId,
       password: token,
       resource: `V2:Fortnite:PC::${FORTNITE_NET_CL}`,
-      timeout: 20000
+      timeout: 30000
     });
 
     this.xmpp.on('error', (err) => {
-      log.error('XMPP error:', err.message);
-      this.state.pushLog('error', `XMPP error: ${err.message}`);
+      log.error('XMPP error:', JSON.stringify(err), 'msg:', err?.message);
+      this.state.pushLog('error', `XMPP error: ${err?.message || JSON.stringify(err)}`);
     });
 
     this.xmpp.on('offline', () => {
@@ -64,21 +57,22 @@ class EpicXMPPClient {
     });
 
     this.xmpp.on('status', (status) => {
-      log.debug('XMPP status:', status);
+      log.info('XMPP status:', status);
     });
 
     try {
       await this.xmpp.start();
+      log.info('XMPP started successfully');
     } catch (err) {
-      log.error('XMPP start failed:', err.message);
-      this.state.pushLog('error', `XMPP start failed: ${err.message}`);
+      log.error('XMPP start failed:', JSON.stringify(err), 'msg:', err?.message);
+      this.state.pushLog('error', `XMPP start failed: ${err?.message || JSON.stringify(err)}`);
       throw err;
     }
   }
 
   async sendPresence(presenceOverride = null) {
     if (!this.xmpp) return;
-    const p = presenceOverride || presenceJson(this.tokenManager.accountId);
+    const p = presenceOverride || getPlatformPresence(this.tokenManager.accountId);
     const stanza = xml('presence', {}, xml('status', {}, JSON.stringify(p)));
     try {
       await this.xmpp.send(stanza);
@@ -139,7 +133,6 @@ class EpicXMPPClient {
         const data = JSON.parse(body);
         this.dispatchNotification(data, stanza);
       } catch {
-        // plain text message
         const from = stanza?.attrs?.from;
         log.info('Message from', from, ':', body);
       }

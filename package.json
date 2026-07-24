@@ -7,7 +7,12 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js"
   },
-  "keywords": ["fortnite", "lobby", "bot", "epic-games"],
+  "keywords": [
+    "fortnite",
+    "lobby",
+    "bot",
+    "epic-games"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
