@@ -51,26 +51,8 @@ class WebServer {
       }
     });
 
-    this.app.post('/api/login-password', async (req, res) => {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password required' });
-      }
-      try {
-        const client = this.clientFactory();
-        this.currentClient = client;
-        const { loginWithEmailPassword } = require('../auth/passwordLogin');
-        const token = await loginWithEmailPassword(email, password);
-        client.tokenManager.set(token);
-        this.state.pushLog('info', `Authenticated as ${token.displayName || token.account_id}`);
-        await client.start();
-        res.json({ ok: true, accountId: token.account_id });
-      } catch (e) {
-        log.error('Password login failed:', e.message);
-        this.state.pushLog('error', `Password login failed: ${e.message}`);
-        res.status(500).json({ error: e.message });
-      }
-    });
+    // Email/password login removed — Epic requires captcha, making it unusable.
+    // Use device-code flow instead (GET /api/login).
 
     this.app.post('/api/equip', async (req, res) => {
       if (!this.currentClient || !this.currentClient.cosmetics) {

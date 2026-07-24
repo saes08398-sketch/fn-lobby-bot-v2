@@ -73,24 +73,6 @@ async function api(url, opts = {}) {
   return data;
 }
 
-$('btn-login-password').onclick = async () => {
-  const email = $('email').value;
-  const password = $('password').value;
-  if (!email || !password) return alert('Enter email and password');
-  $('btn-login-password').disabled = true;
-  try {
-    await api('/api/login-password', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
-    $('password').value = '';
-  } catch (e) {
-    console.error(e);
-  } finally {
-    $('btn-login-password').disabled = false;
-  }
-};
-
 $('btn-login').onclick = async () => {
   $('btn-login').disabled = true;
   try {
